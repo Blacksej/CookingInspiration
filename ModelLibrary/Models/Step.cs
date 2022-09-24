@@ -1,4 +1,4 @@
-﻿namespace CookingInspiration.Models
+﻿namespace ModelLibrary.Models
 {
     public class Step
     {

@@ -7,12 +7,17 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CookingInspiration.Data;
 using CookingInspiration.Models;
+using ModelLibrary.Data;
+using ModelLibrary.Models;
+using System.Text.Json;
+using System.Net.Http.Formatting;
 
 namespace CookingInspiration.Controllers
 {
     public class IngredientsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        HttpClient client;
 
         public IngredientsController(ApplicationDbContext context)
         {
@@ -22,25 +27,39 @@ namespace CookingInspiration.Controllers
         // GET: Ingredients
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Ingredients.Include(i => i.Recipe);
-            return View(await applicationDbContext.ToListAsync());
+            client = new HttpClient();
+
+            using HttpResponseMessage response = await client.GetAsync("https://localhost:7182/api/Ingredients");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var ingredients = JsonSerializer.Deserialize<List<Ingredient>>(jsonResponse);
+
+            return View(ingredients);
+
+            //var applicationDbContext = _context.Ingredients.Include(i => i.Recipe);
+            //return View(await applicationDbContext.ToListAsync());
         }
 
         // GET: Ingredients/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Ingredients == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var ingredient = await _context.Ingredients
-                .Include(i => i.Recipe)
-                .FirstOrDefaultAsync(m => m.IngredientId == id);
-            if (ingredient == null)
-            {
-                return NotFound();
-            }
+            using HttpResponseMessage response = await client.GetAsync($"https://localhost:7182/api/Ingredients/{id}");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var ingredient = JsonSerializer.Deserialize<Ingredient>(jsonResponse);
 
             return View(ingredient);
         }
@@ -59,30 +78,38 @@ namespace CookingInspiration.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("IngredientId,NameAndAmount,RecipeId")] Ingredient ingredient)
         {
-            if (ModelState.IsValid)
+            client = new HttpClient();
+
+            HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:7182/api/Ingredients", ingredient);
+
+            if (response.IsSuccessStatusCode)
             {
-                _context.Add(ingredient);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Index");
             }
-            ViewData["RecipeId"] = new SelectList(_context.Recipes, "RecipeId", "RecipeId", ingredient.RecipeId);
-            return View(ingredient);
+
+            return View();
         }
 
         // GET: Ingredients/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _context.Ingredients == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var ingredient = await _context.Ingredients.FindAsync(id);
-            if (ingredient == null)
-            {
-                return NotFound();
-            }
+            using HttpResponseMessage response = await client.GetAsync($"https://localhost:7182/api/Ingredients/{id}");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var ingredient = JsonSerializer.Deserialize<Ingredient>(jsonResponse);
+
             ViewData["RecipeId"] = new SelectList(_context.Recipes, "RecipeId", "RecipeId", ingredient.RecipeId);
+
             return View(ingredient);
         }
 
@@ -97,46 +124,52 @@ namespace CookingInspiration.Controllers
             {
                 return NotFound();
             }
-
-            if (ModelState.IsValid)
+            try
             {
-                try
+
+                client = new HttpClient();
+
+                using HttpResponseMessage response = await client.PutAsJsonAsync($"https://localhost:7182/api/Ingredients/{id}", ingredient);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _context.Update(ingredient);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!IngredientExists(ingredient.IngredientId))
                 {
-                    if (!IngredientExists(ingredient.IngredientId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                else
+                {
+                    throw;
+                }
             }
             ViewData["RecipeId"] = new SelectList(_context.Recipes, "RecipeId", "RecipeId", ingredient.RecipeId);
-            return View(ingredient);
+            return View();
+
         }
 
-        // GET: Ingredients/Delete/5
+        [HttpGet]
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null || _context.Ingredients == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var ingredient = await _context.Ingredients
-                .Include(i => i.Recipe)
-                .FirstOrDefaultAsync(m => m.IngredientId == id);
-            if (ingredient == null)
-            {
-                return NotFound();
-            }
+            using HttpResponseMessage response = await client.GetAsync($"https://localhost:7182/api/Ingredients/{id}");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var ingredient = JsonSerializer.Deserialize<Ingredient>(jsonResponse);
 
             return View(ingredient);
         }
@@ -146,23 +179,27 @@ namespace CookingInspiration.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.Ingredients == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
-                return Problem("Entity set 'ApplicationDbContext.Ingredients'  is null.");
+                return NotFound();
             }
-            var ingredient = await _context.Ingredients.FindAsync(id);
-            if (ingredient != null)
+
+            using HttpResponseMessage response = await client.DeleteAsync($"https://localhost:7182/api/Ingredients/{id}");
+
+            if (response.IsSuccessStatusCode)
             {
-                _context.Ingredients.Remove(ingredient);
+                return RedirectToAction(nameof(Index));
             }
-            
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+
+            return View();
+
         }
 
         private bool IngredientExists(int id)
         {
-          return (_context.Ingredients?.Any(e => e.IngredientId == id)).GetValueOrDefault();
+            return (_context.Ingredients?.Any(e => e.IngredientId == id)).GetValueOrDefault();
         }
     }
 }

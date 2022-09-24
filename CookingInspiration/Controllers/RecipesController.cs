@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CookingInspiration.Data;
 using CookingInspiration.Models;
+using ModelLibrary.Data;
+using ModelLibrary.Models;
 
 namespace CookingInspiration.Controllers
 {

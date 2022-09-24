@@ -1,8 +1,8 @@
-﻿using CookingInspiration.Models;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ModelLibrary.Models;
 
-namespace CookingInspiration.Data
+namespace ModelLibrary.Data
 {
     public class ApplicationDbContext : IdentityDbContext
     {

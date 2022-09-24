@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using CookingInspiration.Data;
 using CookingInspiration.Models;
 using System.ComponentModel.DataAnnotations;
+using ModelLibrary.Data;
+using ModelLibrary.Models;
 
 namespace CookingInspiration.Controllers
 {

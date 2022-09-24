@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace CookingInspiration.Models
+namespace ModelLibrary.Models
 {
     public class Recipe
     {
