@@ -1,0 +1,44 @@
+﻿body {
+}
+
+.outerWrapper {
+    text-align: center;
+}
+
+#recipeDiv {
+    background-color: beige;
+    padding: 6px;
+    margin-top: 10px;
+    border: ridge black 2px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+#recipeName {
+    text-align: start;
+/*    margin-left: -20px;*/
+}
+
+#recipeImg {
+    /*    height: 160px;
+    width:180px;*/
+}
+
+#description {
+    text-align: start;
+/*    margin-left: -20px;*/
+}
+
+#recipeDescription{
+}
+
+#imageCol{
+    width: 200px;
+    height: 180px;
+}
+
+#imageCol img {
+    height: 100%;
+    width: 100%;
+    object-fit: fill;
+}

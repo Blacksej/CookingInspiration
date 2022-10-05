@@ -9,12 +9,14 @@ using CookingInspiration.Data;
 using CookingInspiration.Models;
 using ModelLibrary.Data;
 using ModelLibrary.Models;
+using System.Text.Json;
 
 namespace CookingInspiration.Controllers
 {
     public class RecipesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        HttpClient client;
 
         public RecipesController(ApplicationDbContext context)
         {
@@ -24,25 +26,36 @@ namespace CookingInspiration.Controllers
         // GET: Recipes
         public async Task<IActionResult> Index()
         {
-              return _context.Recipes != null ? 
-                          View(await _context.Recipes.ToListAsync()) :
-                          Problem("Entity set 'ApplicationDbContext.Recipes'  is null.");
+            client = new HttpClient();
+
+            using HttpResponseMessage response = await client.GetAsync("https://localhost:7182/api/Recipes");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var recipes = JsonSerializer.Deserialize<List<Recipe>>(jsonResponse);
+
+            return View(recipes);
         }
 
         // GET: Recipes/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Recipes == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var recipe = await _context.Recipes
-                .FirstOrDefaultAsync(m => m.RecipeId == id);
-            if (recipe == null)
-            {
-                return NotFound();
-            }
+            using HttpResponseMessage response = await client.GetAsync($"https://localhost:7182/api/Recipes/{id}");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var recipe = JsonSerializer.Deserialize<Recipe>(jsonResponse);
 
             return View(recipe);
         }
@@ -60,28 +73,36 @@ namespace CookingInspiration.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("RecipeId,Name,Description,Image")] Recipe recipe)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(recipe);
-                await _context.SaveChangesAsync();
-                return RedirectToAction("CreateFromRecipe", "Steps", new { id = recipe.RecipeId });
-            }
-            return View(recipe);
+                client = new HttpClient();
+
+                HttpResponseMessage response = await client.PostAsJsonAsync("https://localhost:7182/api/Recipes", recipe);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return RedirectToAction("Index");
+                }
+
+                return View();
         }
 
         // GET: Recipes/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _context.Recipes == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var recipe = await _context.Recipes.FindAsync(id);
-            if (recipe == null)
-            {
-                return NotFound();
-            }
+            using HttpResponseMessage response = await client.GetAsync($"https://localhost:7182/api/Recipes/{id}");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var recipe = JsonSerializer.Deserialize<Recipe>(jsonResponse);
+
             return View(recipe);
         }
 
@@ -96,44 +117,51 @@ namespace CookingInspiration.Controllers
             {
                 return NotFound();
             }
-
-            if (ModelState.IsValid)
+            try
             {
-                try
+
+                client = new HttpClient();
+
+                using HttpResponseMessage response = await client.PutAsJsonAsync($"https://localhost:7182/api/Recipes/{id}", recipe);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _context.Update(recipe);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!RecipeExists(recipe.RecipeId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+
             }
-            return View(recipe);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!RecipeExists(recipe.RecipeId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return View();
         }
 
         // GET: Recipes/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null || _context.Recipes == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var recipe = await _context.Recipes
-                .FirstOrDefaultAsync(m => m.RecipeId == id);
-            if (recipe == null)
-            {
-                return NotFound();
-            }
+            using HttpResponseMessage response = await client.GetAsync($"https://localhost:7182/api/Recipes/{id}");
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+
+            var recipe = JsonSerializer.Deserialize<Recipe>(jsonResponse);
 
             return View(recipe);
         }
@@ -143,18 +171,21 @@ namespace CookingInspiration.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.Recipes == null)
+            client = new HttpClient();
+
+            if (id == null)
             {
-                return Problem("Entity set 'ApplicationDbContext.Recipes'  is null.");
+                return NotFound();
             }
-            var recipe = await _context.Recipes.FindAsync(id);
-            if (recipe != null)
+
+            using HttpResponseMessage response = await client.DeleteAsync($"https://localhost:7182/api/Recipes/{id}");
+
+            if (response.IsSuccessStatusCode)
             {
-                _context.Recipes.Remove(recipe);
+                return RedirectToAction(nameof(Index));
             }
-            
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+
+            return View();
         }
 
         private bool RecipeExists(int id)

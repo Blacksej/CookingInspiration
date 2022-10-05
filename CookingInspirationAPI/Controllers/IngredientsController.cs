@@ -65,7 +65,7 @@ namespace CookingInspirationAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateIngredient(Ingredient ingredient)
+        public async Task<IActionResult> CreateIngredient([FromBody] Ingredient ingredient)
         {
             _context.Ingredients.Add(ingredient);
             await _context.SaveChangesAsync();

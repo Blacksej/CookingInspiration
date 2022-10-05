@@ -1,4 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ModelLibrary.Data;
+using Microsoft.EntityFrameworkCore;
+using ModelLibrary.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -6,38 +9,78 @@ namespace CookingInspirationAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+
     public class RecipesController : ControllerBase
     {
-        // GET: api/<RecipesController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        private readonly ApplicationDbContext _context;
+
+        public RecipesController(ApplicationDbContext context)
         {
-            return new string[] { "value1", "value2" };
+            _context = context;
         }
 
-        // GET api/<RecipesController>/5
         [HttpGet("{id}")]
-        public string Get(int id)
+        public async Task<IActionResult> GetOneRecipe(int id)
         {
-            return "value";
+            var recipe = await _context.Recipes
+                .Include("Ingredients")
+                .Include("Steps")
+                .FirstOrDefaultAsync(recipe => recipe.RecipeId == id);
+
+            return Ok(recipe);
         }
 
-        // POST api/<RecipesController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+        [HttpGet]
+        public async Task<IActionResult> GetAllRecipes()
         {
+            List<Recipe> recipes = await _context.Recipes
+                .Include("Ingredients")
+                .Include("Steps")
+                .ToListAsync();
+
+            return Ok(recipes);
         }
 
-        // PUT api/<RecipesController>/5
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        public async Task<IActionResult> EditRecipe(int id, [FromBody] Recipe recipe)
         {
+            if (id != recipe.RecipeId)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(recipe).State = EntityState.Modified;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
-        // DELETE api/<RecipesController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<IActionResult> DeleteRecipe(int id)
+        // FIX PLIZ: CAN'T DELETE RECIPE BECAUSE OF FOREIGN KEY LIMTIS
         {
+            var recipe = await _context.Recipes
+                .FirstOrDefaultAsync(recipe => recipe.RecipeId == id);
+
+            if (recipe == null)
+            {
+                return NotFound();
+            }
+
+            _context.Recipes.Remove(recipe);
+            await _context.SaveChangesAsync();
+
+            return Ok(recipe);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateRecipe([FromBody] Recipe recipe)
+        {
+            _context.Recipes.Add(recipe);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(CreateRecipe), new { id = recipe.RecipeId }, recipe);
         }
     }
 }
